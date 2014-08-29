@@ -823,20 +823,22 @@ static OSStatus topRenderNotifyCallback(void *inRefCon, AudioUnitRenderActionFla
     }
     
     if ( _inputEnabled ) {
-        [audioSession requestRecordPermission:^(BOOL granted) {
-            if ( granted ) {
-                if ( ![self updateInputDeviceStatus] ) {
-                    if ( error ) *error = self.lastError;
-                    self.lastError = nil;
+        if ([[[UIDevice currentDevice] systemVersion] compare:@"7.0" options: NSNumericSearch] != NSOrderedAscending) {//for ios 7 and above.
+            [audioSession requestRecordPermission:^(BOOL granted) {
+                if ( granted ) {
+                    [self updateInputDeviceStatus];
+                } else {
+                    [[NSNotificationCenter defaultCenter] postNotificationName:AEAudioControllerErrorOccurredNotification
+                                                                        object:self
+                                                                      userInfo:@{ AEAudioControllerErrorKey: [NSError errorWithDomain:AEAudioControllerErrorDomain
+                                                                                                                                 code:AEAudioControllerErrorInputAccessDenied
+                                                                                                                             userInfo:nil]}];
                 }
-            } else {
-                [[NSNotificationCenter defaultCenter] postNotificationName:AEAudioControllerErrorOccurredNotification
-                                                                    object:self
-                                                                  userInfo:@{ AEAudioControllerErrorKey: [NSError errorWithDomain:AEAudioControllerErrorDomain
-                                                                                                                             code:AEAudioControllerErrorInputAccessDenied
-                                                                                                                         userInfo:nil]}];
-            }
-        }];
+            }];
+        }
+        else{//for ios 6.
+            [self updateInputDeviceStatus];
+        }
     }
     
     return YES;
